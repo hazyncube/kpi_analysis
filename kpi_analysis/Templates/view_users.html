@@ -1,0 +1,165 @@
+{% extends 'common.html' %}
+ {% block content%} 
+ {% load static%}
+   {% block title%}
+<head>
+  <meta name="Key Words" content="Dashboard">
+  <meta name="description" content="">
+<title>KPI</title>
+</head>
+{%endblock title%}
+
+<br />
+<br />
+{%if user.roles == 'admin'  %}
+
+<div class="album py-5 bg-body-tertiary">
+
+  <div class="container">
+    <h3 class="text-center mb-3">Analysis Team </h3>
+  
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        {% for data in users %}  
+       
+           {% if not data.is_superuser%}
+      <div class="col">
+        <div class="card shadow-sm">
+          
+          <div class="card-body">
+            <h5 ><i class="fas fa-user text-primary"></i><span class="ms-3" >{{data.username}}   </span></h5>  <hr>
+            <ul class="list-unstyled d-block fw-bold">
+              <li class="mb-3"> <i class="fas fa-user text-primary"></i><span class="ms-3" > {{data.first_name.title}}  </span> <span class="ms-1" >{{data.last_name.title}} </span> 
+              </li>
+              <li class="mb-3"> <i class="fas fa-phone text-primary"></i><span class="ms-3" >   {{data.phoneNumber}}  </span> 
+              </li>
+              <li class="mb-3"> <i class="fas fa-id-card text-primary"></i><span class="ms-3" >Econet Number  <span class="ms-2 text-warning"> {{data.econetNumber}}</span>  </span> 
+              </li>
+              <li class="mb-3">
+              <i class=" fas fa-envelope text-primary"></i><span class="ms-3" > 
+                {% if data.email == ''%}
+                User has no email
+                {%else%}
+                  {{data.email}}  
+                {%endif%}
+                </span> </li>
+                {% for city in user.city.all %}
+                <li class="mb-3"> <i class="fas fa-city text-primary"></i><span class="ms-3" >   <li>{{ city.name }}</li>  </span> 
+                </li>
+               
+            {% endfor %}
+               
+                <li class="mb-3"> <i class="fas text-primary fa-sign-in-alt"></i>
+                  <span class="ms-3" >  {{data.last_login}}  </span> 
+                </li>
+               
+
+             
+            </ul> 
+            <div class="d-flex justify-content-between align-items-center">
+             
+              <div class="btn-group">
+                <button type="button" class="btn text-secondary btn-sm btn-outline-info">
+                  <a class="text-decoration-none text-secondary" href="{% url 'delete_user' data.id%}">Delete user</a> </button>
+                </button>
+                <button type="button" class="btn text-secondary btn-sm btn-outline-info">
+                  <a class="text-decoration-none text-secondary" href="{% url 'dashboard'%}">Back
+                </a>
+                </button>
+
+              </div>
+              <small class="text-body-secondary">{{data.roles}}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      {%endif%}
+      {%endfor%}
+    </div>
+  
+  </div>
+</div>
+{%endif%}
+{%if  user.roles == 'team-leader' %}
+<div class="album py-5 bg-body-tertiary">
+
+  <div class="container">
+    <h3 class="text-center mb-3">My Analysis Team</h3>
+    <p>My Region 
+      {% if user.region ==  'region1' %}
+       <strong>Midland and Manicaland</strong> 
+       {%else%}
+       <strong>Harare and Bulawayo</strong> </p>
+      {% endif%}
+  
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+        {% for data in users %}  
+           
+       
+
+           {% if not data.is_superuser and data.is_technition %}
+          
+           {% if user.region ==  'region1'   %}
+            {% if data.city == 'section_a' or 'section_b'  %}
+           
+      <div class="col">
+        <div class="card shadow-sm">
+          
+          <div class="card-body">
+            <h5 ><i class="fas fa-user text-primary"></i><span class="ms-3" >{{data.username}}   </span></h5>  <hr>
+            <ul class="list-unstyled d-block fw-bold">
+              <li class="mb-3"> <i class="fas fa-user text-primary"></i><span class="ms-3" > {{data.first_name.title}}  </span> <span class="ms-1" >{{data.last_name.title}} </span> 
+              </li>
+              <li class="mb-3"> <i class="fas fa-phone text-primary"></i><span class="ms-3" >   {{data.phoneNumber}}  </span> 
+              </li>
+              <li class="mb-3"> <i class="fas fa-id-card text-primary"></i><span class="ms-3" >Econet Number  <span class="ms-2 text-warning"> {{data.econetNumber}}</span>  </span> 
+              </li>
+              <li class="mb-3">
+              <i class=" fas fa-envelope text-primary"></i><span class="ms-3" > 
+                {% if data.email == ''%}
+                User has no email
+                {%else%}
+                  {{data.email}}  
+                {%endif%}
+                </span> </li>
+                <li class="mb-3"> <i class="fas fa-city text-primary"></i><span class="ms-3" >    {% if data.city ==  'section_a' %} Midland Part A
+                  {%endif%} 
+                  {% if data.city ==  'section_b' %} Midland Part B
+                  {%endif%} 
+                </span> 
+                </li>
+                <li class="mb-3"> <i class="fas text-primary fa-sign-in-alt"></i>
+                  <span class="ms-3" >  {{data.last_login}}  </span> 
+                </li>
+               
+
+             
+            </ul> 
+            <div class="d-flex justify-content-between align-items-center">
+             
+              <div class="btn-group">
+                <button type="button" class="btn text-secondary btn-sm btn-outline-info">
+                  <a class="text-decoration-none text-secondary" href="{% url 'delete_user' data.id%}">Delete user</a> </button>
+                </button>
+                <button type="button" class="btn text-secondary btn-sm btn-outline-info">
+                  <a class="text-decoration-none text-secondary" href="{% url 'dashboard'%}">Back
+                </a>
+                </button>
+
+              </div>
+              <small class="text-body-secondary">{{data.roles}}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      {%endif%}
+      {%endif%}
+      {%endif%}
+      {%endfor%}
+    </div>
+  
+  </div>
+</div>
+{%endif%}
+
+
+ {% endblock content%}
