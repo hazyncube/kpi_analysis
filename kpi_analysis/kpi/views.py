@@ -17,7 +17,21 @@ plt.ioff()
 
 # VARIABLES
 users = User.objects.all()
-df_analysis = pd.read_excel('CleanedData/JupyterCleanedDataset.xlsx')
+from zipfile import BadZipFile
+
+try:
+    df_analysis = pd.read_csv('CleanedData/CleanedDataset.csv')
+    print("File read successfully.")
+    print(df_analysis.head())
+except FileNotFoundError:
+    print("File not found. Please check the file path.")
+except ValueError as ve:
+    print(f"ValueError: {ve}")
+except BadZipFile as bz:
+    print(f"BadZipFile: {bz}")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+
 section_a_mask = df_analysis['SiteCode'].between('MID0001', 'MID0100')
 section_b_mask = df_analysis['SiteCode'].between('MID0101', 'MID0219')
 
@@ -54,8 +68,6 @@ def signIn(request):
 
 @login_required(login_url='sign_in') 
 def AnalysisVariable(request):
-    df_site = pd.read_excel('CleanedData/siteNameCleaned.xlsx')
-    print(df_site.shape)
     analysis_form = AnayasisKpiForm()
     if request.method == 'POST':
         add_varible_form = AnayasisVariablesForm(request.POST)
@@ -246,6 +258,10 @@ def WholeAnalysis(request):
         elif request.user.city == 'section_b':
             df_grouped = section_b.groupby(df_analysis['End Time'])[selection].mean()
             a = 'Midlands Part B'
+        else:
+            df_grouped = df_analysis.groupby(df_analysis['End Time'])[selection].mean()
+            a = 'Whole Region'
+
         print(selected_category)  
         print(request.user.city)     
         print(df_analysis.shape,'df analysis')
@@ -321,11 +337,11 @@ def Analysis(request):
             mask = (df_name['Begin Time'] >= start_time) & (df_name['End Time'] <=  end_time)
             filtered_df = df_name .loc[mask]
             print('shape',df_name.shape)
-            filtered_df.set_index('Begin Time', inplace=True)
+            df_name.set_index('Begin Time', inplace=True)
 
             print(variables)
             plt.figure(figsize=(12, 5))
-            plt.plot(filtered_df.index, filtered_df[variables])
+            plt.plot(df_name.index, df_name[variables])
             plt.xlabel('Time')
             plt.ylabel(f'{variables}')
             plt.title(f'{variables} Over Selected Time Range for {Sitename}')
@@ -333,19 +349,8 @@ def Analysis(request):
             plt.grid(True)
             print('0')
             plt.tight_layout()
-            plt.savefig('static/Images/custom-analysis.png')
+            plt.savefig('static/Images/custom.png')
 
-            plt.figure(figsize=(10, 5))
-            plt.scatter(filtered_df.index, filtered_df[variables])
-            plt.xlabel('Time')
-            plt.ylabel(f'{variables}')
-            plt.title(f'{variables} Over Selected Time Range  for {Sitename}')
-            plt.xticks(rotation=0)
-            plt.grid(True)
-            plt.tight_layout()
-            print('sving')
-            plt.savefig('static/Images/scattercustom-analysis.png')
-            plt.close()
 
             return redirect('displayanalysis')
         else:
@@ -377,38 +382,103 @@ def Analysis_2(request):
             
             start_time = request.POST.get('enddate', None)
             end_time = request.POST.get('startdate', None)
-            df =  df_analysis[df_analysis['Begin Time'] >= start_time & (df_analysis['End Time'] <=  end_time)]
-            variable = form.cleaned_data.get('Traffic')
-            selection = form.cleaned_data.get('Service')
+            traffic_1 = form.cleaned_data.get('traffic_1')
+            traffic_2 = form.cleaned_data.get('traffic_2')
+            service_1 = form.cleaned_data.get('service_1')
+            service_2 = form.cleaned_data.get('service_2') 
             tool = form.cleaned_data.get('Charts')
-            df_selection = df[selection]
-            df_variable = df[variable]
+            if request.user.city == 'section_a':
+                section = section_a
+                a = 'Midlands Part A'
+            elif request.user.city == 'section_b':
+                section = section_b
+                a = 'Midlands Part B'
+            else:
+                section = df_analysis
+                a = 'Whole Region'
+            print(a)
+            print(traffic_1)
+            print(traffic_2)
+            print(service_1,tool,service_2)
+            print('shape before filter',section.shape)
             if tool == 'bar':
-                #bar graph
-                plt.figure(figsize=(8, 5))  
-                plt.bar(df_variable, df_selection)
-                plt.xlabel(variable)
-                plt.ylabel(selection)
-                title = f'{variable} versus {selection}'
-                plt.title(title)
-                plt.xticks(rotation=45)  
-            elif tool == 'Table':
-                  # Line Graph
-                plt.figure(figsize=(8, 5))
-                plt.plot(df_variable, df_selection)  
-                plt.xlabel(variable)
-                plt.ylabel(selection)
-                title = f'{variable} versus {selection}'
-                plt.title(title)
-                plt.xticks(rotation=45)
-            elif tool == 'pie':
-                # Pie Chart 
-                plt.figure(figsize=(8, 5))
-                plt.pie(df_variable.value_counts(), labels= df_variable.unique(), autopct="%1.1f%%",startangle=90) 
-                plt.axis('equal') 
-                plt.title(f"{selection} Distribution") 
-           
+               # import matplotlib.pyplot as plt
+                filtered_df = section[(section['Begin Time'] >= '2024-02-01') & (section['End Time'] <= '2024-02-02') ]
+                print(filtered_df)
 
+                filtered_df_2 = section[(section['TotalTraffic'] >= traffic_1) & (section['TotalTraffic'] <= traffic_2) ]
+                print(filtered_df_2.shape)
+                filtered_df_3 = filtered_df_2[(filtered_df_2['ServiceRate'] >= service_1) & (filtered_df_2['ServiceRate'] <= service_2) ]
+                print(filtered_df_3.shape)
+                df_new = filtered_df_3.SiteName.value_counts()
+                print('df shape of filtered 3',filtered_df_3.shape)
+                if not filtered_df_3.empty:
+                    print(df_new)
+                    plt.bar(df_new.index, df_new.values)
+                    plt.figure(figsize=(8, 5))
+                    plt.show()
+                    plt.xlabel('Site Name')
+                    plt.ylabel('Counts')
+                    plt.xticks(rotation=45) 
+                    plt.title(f'Site Names in {a} with Total Traffic from {traffic_1} to {traffic_2} and Service Rate From {service_1} to {service_2}')
+                    plt.tight_layout()
+                    plt.savefig('static/Images/My_region.png')
+                    plt.close()
+                    messages.warning(request,'')
+    
+                else:
+                    section_a.plot(kind='bar')
+                    plt.figure(figsize=(8, 5))
+                    plt.xlabel('Site Name')
+                    plt.ylabel('Counts')
+                    plt.xticks(rotation=45) 
+                    plt.title(f'No data available for with Total Traffic from {traffic_1} to {traffic_2} and Service Rate From {service_1} to {service_2}')
+                    plt.tight_layout()
+                    plt.savefig('static/Images/My_region.png')
+                    plt.close()
+                    print("No data available for the specified filters.")
+                    messages.success(request,'')
+ 
+            elif tool == 'pie':
+                print(start_time,end_time)
+                print('shwpe',section.shape)
+                filtered_df = section[
+                (section['Begin Time'] >= start_time) & (section['End Time'] <= end_time)  
+                ]
+                print(filtered_df)
+                
+                filtered_df_2 = section[(section['TotalTraffic'] >= traffic_1) & (section['TotalTraffic'] <= traffic_2) ]
+                print(filtered_df_2.shape)
+                filtered_df_3 = filtered_df_2[(filtered_df_2['ServiceRate'] >= service_1) & (filtered_df_2['ServiceRate'] <= service_2) ]
+                print(filtered_df_3.shape)
+                df_new = filtered_df_3.SiteName.value_counts()
+                df_new.value_counts()
+                if not filtered_df_3.empty:
+                    plt.figure(figsize=(8, 5))  
+                    plt.pie(df_new,labels=df_new.index,  autopct='%1.1f%%', startangle=90)  
+                    plt.title(f'Site Names in {a} with Total Traffic from {traffic_1} to {traffic_2} and Service Rate From {service_1} to {service_2}')
+                    plt.axis('equal')
+                    plt.tight_layout()
+                    plt.show()
+                    plt.savefig('static/Images/My_region.png')
+                    plt.close()
+                    messages.warning(request,'')
+    
+                    print('sving')
+                else:
+                    plt.figure(figsize=(8, 5))  
+                    plt.pie(df_new,labels=df_new.index,  autopct='%1.1f%%', startangle=90)  
+                    plt.title(f'No data available for Total Traffic from {traffic_1} to {traffic_2} and Service Rate From {service_1} to {service_2}')
+                    plt.axis('equal')
+                    plt.tight_layout()
+                    plt.show()
+                    plt.savefig('static/Images/My_region.png')
+                    plt.close()
+                    print("No data available for the specified filters.")
+                    messages.success(request,'')
+    
+           
+            
         else:
             print('form not valid',form.errors)
    
@@ -445,12 +515,10 @@ def uploadDataSet(request):
             print(display)
             dataset = form.save(commit=False)
             dataset.created_by = request.user
-            if display == 'block':
-                loading(request,dataset) 
             dataset.save()
             mesage= f'Dataset added succesfully'
             messages.success(request,mesage)
-            return redirect('view_dataset')   
+            return redirect('dashboard')   
         else:
             messages.warning(request, form.errors)
     else:
@@ -502,25 +570,6 @@ def CleaningPipeLine(request):
     }
    
     return render(request, 'view_dataset.html' ,content)
-
-@login_required(login_url='sign_in') 
-def viewDataSet(request):
-    import pandas as pd
-    #df = pd.read_excel(current.file)
-   # rows , columns = df.shape
-
-    content ={}
-    content ={ 
-    # 'datasets':datasets,
-    # 'rows':rows,
-    # 'cols':columns,
-    # 'current':current
-    }
-   
-    return render(request, 'view_dataset.html' ,content)
-
-
-
 #-----------------------------------------------OBJECTIVE 5  COMMENTS-----------------------------------------------
 #     5. To develop a system that allows Econet personel to add comments on KPI reports and
 # helping them to make  data-driven decision
